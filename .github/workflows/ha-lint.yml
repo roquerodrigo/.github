@@ -51,3 +51,27 @@ jobs:
 
       - name: Type check
         run: uv run mypy
+
+  version-check:
+    # Catches drift between the two version sources: ``manifest.json``
+    # (what HA reads at runtime) and ``pyproject.toml`` ``[project]``
+    # (what release-please bumps alongside it). Release-please writes
+    # both atomically; this job guards against manual edits that touch
+    # only one.
+    name: Version check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Compare manifest.json and pyproject.toml versions
+        run: |
+          set -euo pipefail
+          manifest_version=$(jq -r '.version' custom_components/*/manifest.json)
+          pyproject_version=$(grep -m1 '^version' pyproject.toml | awk -F'"' '{print $2}')
+          echo "manifest.json:  $manifest_version"
+          echo "pyproject.toml: $pyproject_version"
+          if [ "$manifest_version" != "$pyproject_version" ]; then
+            echo "::error::Version mismatch — manifest.json ($manifest_version) != pyproject.toml ($pyproject_version). Update both or rely on release-please."
+            exit 1
+          fi
