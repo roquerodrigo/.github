@@ -1,21 +1,15 @@
 name: SDK Tests (reusable)
 
+# Coverage threshold lives in the consumer's pyproject.toml (pytest +
+# coverage config). The reusable just invokes pytest.
+
 on:
   workflow_call:
     inputs:
-      package:
-        description: "SDK package name under src/ (used for coverage source)"
-        required: true
-        type: string
       python-version:
         required: false
         type: string
         default: "3.14"
-      cov-fail-under:
-        description: "Coverage gate (percent). Default 80 for SDKs."
-        required: false
-        type: number
-        default: 80
 
 permissions:
   contents: read
@@ -38,8 +32,4 @@ jobs:
         run: uv sync --group dev
 
       - name: Run tests
-        run: |
-          uv run pytest \
-            --cov=src/${{ inputs.package }} \
-            --cov-report=term-missing \
-            --cov-fail-under=${{ inputs.cov-fail-under }}
+        run: uv run pytest

@@ -1,21 +1,15 @@
 name: HA Tests (reusable)
 
+# Coverage threshold lives in the consumer's pytest.ini so local runs
+# and CI agree. The reusable just invokes pytest.
+
 on:
   workflow_call:
     inputs:
-      package:
-        description: "Custom-component package name (used for the coverage source)"
-        required: true
-        type: string
       python-version:
         required: false
         type: string
         default: "3.14"
-      cov-fail-under:
-        description: "Coverage gate (percent). Default 95 for HA integrations."
-        required: false
-        type: number
-        default: 95
 
 permissions:
   contents: read
@@ -40,8 +34,4 @@ jobs:
           python3 -m pip install -r requirements_test.txt
 
       - name: Run tests
-        run: |
-          python3 -m pytest \
-            --cov=custom_components/${{ inputs.package }} \
-            --cov-report=term-missing \
-            --cov-fail-under=${{ inputs.cov-fail-under }}
+        run: python3 -m pytest
