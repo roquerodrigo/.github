@@ -1,0 +1,27 @@
+name: HA Update PR Branch (reusable)
+
+# Rebases the PR branch onto the latest ``main`` so contributors don't have
+# to keep pulling manually. Skipped on draft PRs and on PRs from forks
+# (forks don't have write access via GITHUB_TOKEN).
+
+on:
+  workflow_call:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    name: Update PR branch
+    if: |
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          GH_REPO: ${{ github.repository }}
+        run: gh pr update-branch "$NUMBER" --rebase || true

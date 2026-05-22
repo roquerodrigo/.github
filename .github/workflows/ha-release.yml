@@ -1,0 +1,24 @@
+name: HA Release (reusable)
+
+# release-please needs a token with write access to contents + pull-requests.
+# Callers should pass ``secrets: inherit`` so a ``RELEASE_PLEASE_PAT`` secret
+# (if configured) takes precedence over the default ``GITHUB_TOKEN``.
+
+on:
+  workflow_call:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    name: Release Please
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run release-please
+        uses: googleapis/release-please-action@v5
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_PAT || secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
