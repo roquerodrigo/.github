@@ -59,32 +59,30 @@ permissions:
 jobs:
   lint:
     if: github.event_name != 'schedule'
-    uses: roquerodrigo/.github/.github/workflows/ha-lint.yml@v1
-    with:
-      package: my_integration
+    uses: roquerodrigo/.github/.github/workflows/ha-lint.yml@v2
 
   tests:
     if: github.event_name != 'schedule'
     needs: lint
-    uses: roquerodrigo/.github/.github/workflows/ha-tests.yml@v1
+    uses: roquerodrigo/.github/.github/workflows/ha-tests.yml@v2
 
   validate:
     if: github.event_name != 'schedule'
     needs: lint
-    uses: roquerodrigo/.github/.github/workflows/ha-validate.yml@v1
+    uses: roquerodrigo/.github/.github/workflows/ha-validate.yml@v2
 
   codeql:
     permissions:
       actions: read
       contents: read
       security-events: write
-    uses: roquerodrigo/.github/.github/workflows/ha-codeql.yml@v1
+    uses: roquerodrigo/.github/.github/workflows/ha-codeql.yml@v2
 
   auto-assign:
     if: github.event_name == 'pull_request' && github.event.action == 'opened'
     permissions:
       pull-requests: write
-    uses: roquerodrigo/.github/.github/workflows/ha-auto-assign.yml@v1
+    uses: roquerodrigo/.github/.github/workflows/ha-auto-assign.yml@v2
     secrets: inherit
 
   update-pr-branch:
@@ -93,7 +91,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    uses: roquerodrigo/.github/.github/workflows/ha-update-pr-branch.yml@v1
+    uses: roquerodrigo/.github/.github/workflows/ha-update-pr-branch.yml@v2
 
   release:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -101,7 +99,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    uses: roquerodrigo/.github/.github/workflows/ha-release.yml@v1
+    uses: roquerodrigo/.github/.github/workflows/ha-release.yml@v2
     secrets: inherit
 ```
 
@@ -115,16 +113,39 @@ the workflow-level baseline.
 
 ## Versioning
 
-Tags follow `vN` (major only). Callers pin `@v1` and pick up
-non-breaking changes automatically. A breaking change means a `v2` tag,
-and callers move at their own pace.
+Tags follow `vN` (major only). Callers pin `@vN` and pick up
+non-breaking changes automatically. A breaking change means a new
+`vN+1` tag, and callers move at their own pace.
+
+### `v2` — HA reusables migrated to uv (2026-05-22)
+
+`ha-lint.yml` and `ha-tests.yml` were updated to install dependencies
+via `uv sync --group dev [--group lint]` instead of
+`pip install -r requirements.txt`. Callers on `@v2` need:
+
+- `pyproject.toml` with `[dependency-groups]` `dev` (and `lint` for
+  the lint reusable). The old `requirements.txt` /
+  `requirements_test.txt` files are no longer used.
+- `uv.lock` committed.
+- `[tool.uv] package = false` for HA integrations (which aren't
+  pip-installable packages — they're `custom_components/<name>/`
+  directories).
+- The `package` input on `ha-lint.yml` is gone; configure mypy's
+  target via `[tool.mypy] files = ["custom_components/<name>"]` in
+  the consumer's `pyproject.toml`.
+
+`@v1` stays pinned at the pip-based commit for repos that haven't
+migrated yet.
+
+The SDK reusables (`sdk-*.yml`) were already uv-based and are
+unchanged between `v1` and `v2`.
 
 ## Coverage gates
 
-- HA integrations default to **95 %** (`ha-tests.yml`, override via
-  `cov-fail-under`).
-- SDKs default to **80 %** (`sdk-tests.yml`, override via
-  `cov-fail-under`).
+Coverage thresholds live in the consumer's `pyproject.toml`
+(`[tool.pytest.ini_options]` `addopts = ["--cov-fail-under=N"]`) so
+local runs and CI agree. Suggested defaults: **95 %** for HA
+integrations, **80 %** for SDKs.
 
 ## Conventions
 
