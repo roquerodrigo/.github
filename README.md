@@ -40,29 +40,33 @@ for the canonical HA caller and
 [`neakasa-litterbox-sdk`](https://github.com/roquerodrigo/neakasa-litterbox-sdk/blob/main/.github/workflows/ci.yml)
 for the canonical SDK caller.
 
-### Minimum HA caller
+### Full HA caller
 
 ```yaml
 name: CI
-on:
-  push: { branches: [main] }
-  pull_request: { branches: [main] }
-  schedule:
-    - cron: "0 0 * * 0"
 
-permissions: {}
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 0 * * 0"   # CodeQL weekly
+
+permissions:
+  contents: read
 
 jobs:
   lint:
     if: github.event_name != 'schedule'
     uses: roquerodrigo/.github/.github/workflows/ha-lint.yml@v1
-    with: { package: my_integration }
+    with:
+      package: my_integration
 
   tests:
     if: github.event_name != 'schedule'
     needs: lint
     uses: roquerodrigo/.github/.github/workflows/ha-tests.yml@v1
-    with: { package: my_integration }
 
   validate:
     if: github.event_name != 'schedule'
@@ -70,17 +74,44 @@ jobs:
     uses: roquerodrigo/.github/.github/workflows/ha-validate.yml@v1
 
   codeql:
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
     uses: roquerodrigo/.github/.github/workflows/ha-codeql.yml@v1
+
+  auto-assign:
+    if: github.event_name == 'pull_request' && github.event.action == 'opened'
+    permissions:
+      pull-requests: write
+    uses: roquerodrigo/.github/.github/workflows/ha-auto-assign.yml@v1
+    secrets: inherit
+
+  update-pr-branch:
+    if: github.event_name == 'pull_request'
+    needs: [lint, tests, validate]
+    permissions:
+      contents: write
+      pull-requests: write
+    uses: roquerodrigo/.github/.github/workflows/ha-update-pr-branch.yml@v1
 
   release:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [lint, tests, validate]
+    permissions:
+      contents: write
+      pull-requests: write
     uses: roquerodrigo/.github/.github/workflows/ha-release.yml@v1
     secrets: inherit
 ```
 
-Add `auto-assign` and `update-pr-branch` jobs guarded by
-`if: github.event_name == 'pull_request'` for the full pipeline.
+## Permissions model
+
+The workflow-level `permissions: contents: read` is the baseline. Jobs
+that call reusables needing more declare an explicit `permissions:`
+block — GitHub refuses to start the workflow if a reusable requests
+more than the caller allows. Jobs without explicit permissions inherit
+the workflow-level baseline.
 
 ## Versioning
 
