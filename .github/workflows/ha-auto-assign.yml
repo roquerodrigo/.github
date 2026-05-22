@@ -22,4 +22,14 @@ jobs:
           NUMBER: ${{ github.event.pull_request.number }}
           GH_REPO: ${{ github.repository }}
           ASSIGNEE: ${{ inputs.assignee }}
-        run: gh pr edit "$NUMBER" --add-assignee "$ASSIGNEE"
+        # ``gh pr edit --add-assignee`` is not idempotent — it errors with
+        # "Assignee has already been taken" if the user is already on the
+        # PR. Check first so re-runs and overlap with the old
+        # ``pull_request_target`` workflow during the migration don't fail
+        # the job.
+        run: |
+          if gh pr view "$NUMBER" --json assignees --jq '.assignees[].login' | grep -qFx "$ASSIGNEE"; then
+            echo "$ASSIGNEE already assigned to PR #$NUMBER"
+            exit 0
+          fi
+          gh pr edit "$NUMBER" --add-assignee "$ASSIGNEE"
