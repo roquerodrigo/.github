@@ -1,7 +1,8 @@
 # CLAUDE.md
 
 This repository holds the default community health files for every repository owned by
-`roquerodrigo`. It has no code, build, tests or CI.
+`roquerodrigo`. It has no code, build or tests; its only workflow,
+`.github/workflows/auto-assign.yml`, acts on this repository alone (see Gotchas).
 
 ## Cross-repo impact
 
